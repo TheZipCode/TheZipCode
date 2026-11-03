@@ -15,8 +15,8 @@ module.exports = {
         sm: 'calc(var(--radius) - 4px)'
       },
       fontFamily: {
-        display: ['Outfit', 'sans-serif'],
-        sans: ['Manrope', 'sans-serif']
+        display: ['Bricolage Grotesque', 'Arial', 'sans-serif'],
+        sans: ['Inter', 'Helvetica Neue', 'sans-serif']
       },
       colors: {
         ink: '#0B0F19',

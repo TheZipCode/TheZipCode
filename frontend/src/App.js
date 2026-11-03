@@ -5,6 +5,7 @@ import Lenis from "lenis";
 import { Toaster } from "@/components/ui/sonner";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
+import About from "@/components/About";
 import Marquee from "@/components/Marquee";
 import Services from "@/components/Services";
 import TechStack from "@/components/TechStack";
@@ -38,21 +39,47 @@ class ErrorBoundary extends Component {
 
 function Home() {
   return (
-    <div className="relative min-h-screen overflow-x-clip bg-[#111110] text-white">
+    <div className="home-page relative min-h-screen overflow-x-clip bg-[#fff5e9] text-[#202020]">
       <Navbar />
       <main>
         <Hero />
         <Marquee />
         <Services />
+        <About />
         <TechStack />
-        <Process />
         <Portfolio />
+        <Process />
         <Testimonials />
+        <WhyChooseUs />
         <Contact />
       </main>
       <Footer />
       <WhatsAppFloat />
     </div>
+  );
+}
+
+function WhyChooseUs() {
+  const reasons = [
+    "Creative thinking, not templates",
+    "Modern technology",
+    "Business-focused solutions",
+    "Responsive development",
+    "Scalable applications",
+    "Quality-focused delivery",
+  ];
+  return (
+    <section className="why-scene py-20 lg:py-28">
+      <div className="mx-auto max-w-7xl px-5 sm:px-8">
+        <p className="mb-5 text-xs font-bold uppercase tracking-[.25em] text-[#3457eb]">Our difference</p>
+        <h2 className="mb-12 max-w-3xl font-display text-4xl font-extrabold uppercase leading-[.98] tracking-[-.055em] sm:text-6xl">
+          Why <span className="text-[#ff6b35]">choose</span> us.
+        </h2>
+        <div className="grid gap-x-12 sm:grid-cols-2">
+          {reasons.map((reason) => <div key={reason} className="why-scene__item">{reason}</div>)}
+        </div>
+      </div>
+    </section>
   );
 }
 

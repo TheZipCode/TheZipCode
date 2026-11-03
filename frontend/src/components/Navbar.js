@@ -7,6 +7,7 @@ import { scrollToId } from "@/lib/scroll";
 const LINKS = [
   { label: "Home", id: "home" },
   { label: "Services", id: "services" },
+  { label: "About", id: "about" },
   { label: "Tech Stack", id: "tech-stack" },
   { label: "Process", id: "process" },
   { label: "Portfolio", id: "portfolio" },
