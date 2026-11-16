@@ -15,7 +15,7 @@ const adminPassword = process.env.ADMIN_PASSWORD || 'change-this-password';
 const adminPasswordHash = bcrypt.hashSync(adminPassword, 10);
 const allowedOrigins = (
   process.env.CORS_ORIGINS ||
-  "http://localhost:3000,https://frontend-b9e77kqs4-next-gen-web-solution.vercel.app,https://frontend-six-mocha-14.vercel.app"
+  "http://localhost:3000,https://thezipcode.in,https://www.thezipcode.in,https://frontend-b9e77kqs4-next-gen-web-solution.vercel.app,https://frontend-six-mocha-14.vercel.app"
 )
   .split(",")
   .map((origin) => origin.trim())
