@@ -13,68 +13,85 @@ const jwtSecret = process.env.JWT_SECRET || 'development-only-change-me';
 const adminEmail = (process.env.ADMIN_EMAIL || 'admin@example.com').toLowerCase();
 const adminPassword = process.env.ADMIN_PASSWORD || 'change-this-password';
 const adminPasswordHash = bcrypt.hashSync(adminPassword, 10);
-const allowedOrigins = (
-  process.env.CORS_ORIGINS ||
-  "http://localhost:3000,https://thezipcode.in,https://www.thezipcode.in,https://frontend-b9e77kqs4-next-gen-web-solution.vercel.app,https://frontend-six-mocha-14.vercel.app"
-)
-  .split(",")
+
+const defaultAllowedOrigins = [
+  'http://localhost:3000',
+  'https://thezipcode.in',
+  'https://www.thezipcode.in',
+  'https://frontend-b9e77kqs4-next-gen-web-solution.vercel.app',
+  'https://frontend-six-mocha-14.vercel.app',
+];
+
+const allowedOrigins = (process.env.CORS_ORIGINS || defaultAllowedOrigins.join(','))
+  .split(',')
   .map((origin) => origin.trim())
-  .concat("https://frontend-b9e77kqs4-next-gen-web-solution.vercel.app")
-  .filter(Boolean);
+  .concat(defaultAllowedOrigins)
+  .filter(Boolean)
+  .filter((value, index, array) => array.indexOf(value) === index);
 
-const emailFromName =
-  process.env.EMAIL_FROM_NAME || "TheZipCode";
+const emailFromName = process.env.EMAIL_FROM_NAME || 'TheZipCode';
+const ownerEmail = process.env.OWNER_EMAIL || 'workforzipcode@gmail.com';
 
-const ownerEmail =
-  process.env.OWNER_EMAIL || "workforzipcode@gmail.com";
-
-const missingEmailConfig = ["EMERGENT_EMAIL_KEY"].filter(
-  (key) => !process.env[key]
-);
+const missingEmailConfig = ['EMERGENT_EMAIL_KEY'].filter((key) => !process.env[key]);
 
 if (missingEmailConfig.length) {
   console.warn(
-    `Email notifications are disabled; missing configuration: ${missingEmailConfig.join(", ")}`
+    `Email notifications are disabled; missing configuration: ${missingEmailConfig.join(', ')}`
   );
 }
 
 app.use(
   cors({
     origin(origin, callback) {
-      if (
-        !origin ||
-        allowedOrigins.includes("*") ||
-        allowedOrigins.includes(origin)
-      ) {
+      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      return callback(new Error("Origin not allowed by CORS"));
+      callback(new Error('Origin not allowed by CORS'));
     },
     credentials: true,
-    methods: ["GET", "POST", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 app.use((req, _res, next) => {
-  const queryStart = req.url.indexOf("?");
+  const queryStart = req.url.indexOf('?');
   const pathname = queryStart < 0 ? req.url : req.url.slice(0, queryStart);
-  const query = queryStart < 0 ? "" : req.url.slice(queryStart);
-  req.url = `${pathname.replace(/\/{2,}/g, "/")}${query}`;
+  const query = queryStart < 0 ? '' : req.url.slice(queryStart);
+  req.url = `${pathname.replace(/\/{2,}/g, '/')}${query}`;
   next();
 });
 
 const fail = (res, status, detail) => res.status(status).json({ detail });
 const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '');
-const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+const escapeHtml = (value) =>
+  String(value).replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[char]);
 const makeToken = (email, type, expiresIn) => jwt.sign({ sub: email, type }, jwtSecret, { expiresIn });
 const setCookies = (res, email) => {
   const secure = process.env.NODE_ENV === 'production';
-  res.cookie('access_token', makeToken(email, 'access', '1h'), { httpOnly: true, secure, sameSite: secure ? 'none' : 'lax', maxAge: 3600000, path: '/' });
-  res.cookie('refresh_token', makeToken(email, 'refresh', '7d'), { httpOnly: true, secure, sameSite: secure ? 'none' : 'lax', maxAge: 604800000, path: '/' });
+  res.cookie('access_token', makeToken(email, 'access', '1h'), {
+    httpOnly: true,
+    secure,
+    sameSite: secure ? 'none' : 'lax',
+    maxAge: 3600000,
+    path: '/',
+  });
+  res.cookie('refresh_token', makeToken(email, 'refresh', '7d'), {
+    httpOnly: true,
+    secure,
+    sameSite: secure ? 'none' : 'lax',
+    maxAge: 604800000,
+    path: '/',
+  });
 };
 function requireAdmin(req, res, next) {
   const token = req.cookies.access_token || (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
@@ -84,16 +101,22 @@ function requireAdmin(req, res, next) {
     if (payload.type !== 'access' || payload.sub !== adminEmail) return fail(res, 401, 'Invalid token');
     req.admin = { email: adminEmail, role: 'admin' };
     next();
-  } catch { return fail(res, 401, 'Invalid or expired token'); }
+  } catch {
+    return fail(res, 401, 'Invalid or expired token');
+  }
 }
 
 async function sendInquiryEmail(inquiry) {
   const { EMERGENT_EMAIL_KEY } = process.env;
   if (!EMERGENT_EMAIL_KEY) return false;
   const rows = [
-    ['Name', inquiry.name], ['Email', inquiry.email], ['Phone', inquiry.phone],
-    ['Service', inquiry.service], ['Project brief', inquiry.message],
+    ['Name', inquiry.name],
+    ['Email', inquiry.email],
+    ['Phone', inquiry.phone],
+    ['Service', inquiry.service],
+    ['Project brief', inquiry.message],
   ].map(([label, value]) => `<tr><td style="padding:10px 14px;color:#64748b;vertical-align:top">${escapeHtml(label)}</td><td style="padding:10px 14px;color:#0f172a">${escapeHtml(value).replace(/\n/g, '<br>')}</td></tr>`).join('');
+
   const response = await fetch('https://integrations.emergentagent.com/api/v1/email/send', {
     method: 'POST',
     headers: { 'X-Email-Key': EMERGENT_EMAIL_KEY, 'Content-Type': 'application/json' },
@@ -102,14 +125,16 @@ async function sendInquiryEmail(inquiry) {
       subject: 'New Project Inquiry — TheZipCode',
       from_name: emailFromName,
       contact_email: process.env.EMAIL_REPLY_TO || inquiry.email,
-      html: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;font-family:Arial,sans-serif"><tr><td style="padding:24px"><h2 style="color:#0f172a">New Project Inquiry</h2><p style="color:#64748b">Received from TheZipCode contact form.</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff">${rows}</table></td></tr></table>`,
+      html: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;font-family:Arial,sans-serif"><tr><td style="padding:24px"><h2 style="color:#0f172a">New Project Inquiry</h2><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table></td></tr></table>`,
     }),
     signal: AbortSignal.timeout(10000),
   });
+
   if (!response.ok) {
     console.error(`Email inquiry notification failed (HTTP ${response.status})`);
     return false;
   }
+
   return true;
 }
 
@@ -124,21 +149,25 @@ async function sendWhatsAppLeadAlert(inquiry) {
     `Email: ${inquiry.email}`,
     `Message: ${inquiry.message}`,
   ].join('\n').slice(0, 1500);
+
   const params = new URLSearchParams({
     To: `whatsapp:${LEAD_ALERT_PHONE}`,
     From: `whatsapp:${TWILIO_WHATSAPP_FROM}`,
     Body: body,
   });
+
   const credentials = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64');
   const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`, {
     method: 'POST',
     headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' },
     body: params,
   });
+
   if (!response.ok) {
     console.error(`WhatsApp lead alert failed (Twilio HTTP ${response.status})`);
     return false;
   }
+
   return true;
 }
 
@@ -159,21 +188,34 @@ app.post('/api/contact', async (req, res) => {
   if (typeof phone !== 'string' || phone.trim().length < 7 || phone.length > 24) return fail(res, 422, 'Phone must be between 7 and 24 characters');
   if (typeof service !== 'string' || service.trim().length < 2 || service.length > 80) return fail(res, 422, 'A valid service is required');
   if (typeof message !== 'string' || message.trim().length < 10 || message.length > 5000) return fail(res, 422, 'Message must be between 10 and 5000 characters');
-  const inquiry = { id: randomUUID(), name: name.trim(), email: email.toLowerCase(), phone: phone.trim(), service: service.trim(), message: message.trim(), created_at: new Date().toISOString(), status: 'new', is_read: false };
+
+  const inquiry = {
+    id: randomUUID(),
+    name: name.trim(),
+    email: email.toLowerCase(),
+    phone: phone.trim(),
+    service: service.trim(),
+    message: message.trim(),
+    created_at: new Date().toISOString(),
+  };
+
   store.inquiries.push(inquiry);
   console.info(`New inquiry saved: ${inquiry.id} (${inquiry.service})`);
+
   let emailSent = false;
   try {
     emailSent = await sendInquiryEmail(inquiry);
   } catch (error) {
     console.error('Email inquiry notification failed:', error.message);
   }
+
   let whatsappSent = false;
   try {
     whatsappSent = await sendWhatsAppLeadAlert(inquiry);
   } catch (error) {
     console.error('WhatsApp lead alert failed:', error.message);
   }
+
   res.status(201).json({ status: 'success', inquiry_id: inquiry.id, email_sent: emailSent, whatsapp_sent: whatsappSent });
 });
 
@@ -184,7 +226,7 @@ app.post('/api/admin/login', async (req, res) => {
   const identifier = `${req.ip}:${normalized}`;
   const attempt = store.loginAttempts.get(identifier);
   if (attempt?.count >= 5 && Date.now() - attempt.last_failed < 900000) return fail(res, 429, 'Too many failed attempts. Try again in 15 minutes.');
-  const ok = normalized === adminEmail && await bcrypt.compare(password, adminPasswordHash);
+  const ok = normalized === adminEmail && (await bcrypt.compare(password, adminPasswordHash));
   if (!ok) {
     const current = store.loginAttempts.get(identifier) || { count: 0 };
     store.loginAttempts.set(identifier, { count: current.count + 1, last_failed: Date.now() });
@@ -194,6 +236,7 @@ app.post('/api/admin/login', async (req, res) => {
   setCookies(res, normalized);
   res.json({ email: normalized, role: 'admin' });
 });
+
 app.post('/api/admin/refresh', (req, res) => {
   const token = req.cookies.refresh_token;
   if (!token) return fail(res, 401, 'No refresh token');
@@ -202,13 +245,17 @@ app.post('/api/admin/refresh', (req, res) => {
     if (payload.type !== 'refresh' || payload.sub !== adminEmail) return fail(res, 401, 'Invalid session');
     setCookies(res, adminEmail);
     res.json({ email: adminEmail, role: 'admin' });
-  } catch { return fail(res, 401, 'Session expired. Please log in again.'); }
+  } catch {
+    return fail(res, 401, 'Session expired. Please log in again.');
+  }
 });
+
 app.post('/api/admin/logout', (_req, res) => {
   res.clearCookie('access_token', { path: '/' });
   res.clearCookie('refresh_token', { path: '/' });
   res.json({ status: 'logged_out' });
 });
+
 app.get('/api/admin/me', requireAdmin, (req, res) => res.json(req.admin));
 app.get('/api/admin/inquiries', requireAdmin, (_req, res) => {
   const inquiries = store.listInquiries().map((item) => ({ ...item, is_read: item.is_read ?? false }));
@@ -232,4 +279,5 @@ app.use((err, _req, res, _next) => {
   console.error(err);
   res.status(500).json({ detail: 'Internal server error' });
 });
+
 app.listen(port, () => console.log(`TheZipCode API listening on http://localhost:${port}`));
